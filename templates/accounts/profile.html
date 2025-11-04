@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Profile - EOD Report System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-person-circle"></i> My Profile</h2>
+    <p class="subtitle">Manage your account settings</p>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card profile-info fade-in">
+            <div class="card-body text-white">
+                <div class="text-center mb-4">
+                    <i class="bi bi-person-circle" style="font-size: 5rem;"></i>
+                    <h4 class="mt-2">{{ user.get_full_name }}</h4>
+                    <p class="mb-0 opacity-75">@{{ user.username }}</p>
+                </div>
+                <hr class="border-white opacity-25">
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Role:</strong> <span class="badge bg-white text-dark">{{ user.get_role_display }}</span></p>
+                <p><strong>Department:</strong> {{ user.department|default:"Not specified" }}</p>
+                {% if user.is_employee and user.manager %}
+                <p><strong>Manager:</strong> {{ user.manager.get_full_name }}</p>
+                {% endif %}
+                <p class="mb-0"><strong>Member Since:</strong> {{ user.date_joined|date:"M d, Y" }}</p>
+            </div>
+        </div>
+
+        <!-- Security Card -->
+        <div class="card mt-3 fade-in">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-shield-lock-fill"></i> Security</h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Keep your account secure by updating your password regularly.</p>
+                <a href="{% url 'accounts:change_password' %}" class="btn btn-warning w-100">
+                    <i class="bi bi-key-fill"></i> Change Password
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card fade-in">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Update Profile Information</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Changes
+                        </button>
+                        <a href="{% url 'reports:dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

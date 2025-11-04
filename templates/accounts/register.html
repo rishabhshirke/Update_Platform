@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register - EOD Report System{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="row justify-content-center w-100">
+        <div class="col-md-7 col-lg-6">
+            <div class="card auth-card">
+                <div class="card-header text-center">
+                    <i class="bi bi-person-plus-fill" style="font-size: 3rem; color: #27ae60;"></i>
+                    <h3 class="mb-0 mt-3 text-white">Create New Account</h3>
+                    <p class="mb-0 text-white-50">Join the EOD Report System</p>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info border-0">
+                        <i class="bi bi-info-circle-fill"></i> <strong>Note:</strong> Your account will be pending approval until an administrator assigns you a manager and activates it.
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        <button type="submit" class="btn btn-success w-100 mt-4 btn-lg">
+                            <i class="bi bi-person-plus"></i> Create Account
+                        </button>
+                    </form>
+                    <hr class="my-4">
+                    <div class="text-center">
+                        <p class="mb-0">
+                            Already have an account? <a href="{% url 'accounts:login' %}" class="text-decoration-none fw-bold">Sign In</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

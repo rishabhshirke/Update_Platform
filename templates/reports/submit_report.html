@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if is_edit %}Edit{% else %}Submit{% endif %} EOD Report{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>
+        <i class="bi bi-{% if is_edit %}pencil-square-fill{% else %}plus-circle-fill{% endif %}"></i>
+        {% if is_edit %}Edit{% else %}Submit{% endif %} EOD Report
+    </h2>
+    <p class="subtitle">{{ user.get_full_name }} | {{ user.department|default:"N/A" }}</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card fade-in">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text-fill"></i>
+                    Report Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'reports:employee_dashboard' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> {% if is_edit %}Update{% else %}Submit{% endif %} Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Helper Info -->
+        <div class="card mt-3 border-info fade-in">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-lightbulb-fill text-warning"></i> Submission Guidelines</h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info border-0 mb-3">
+                    <i class="bi bi-calendar-week"></i> <strong>Important:</strong> Reports can only be submitted for weekday dates (Monday-Friday).
+                </div>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>Report Date:</strong> Select a weekday date (Mon-Fri only)</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>Project Name:</strong> Enter the project or task you worked on</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>Tasks Completed:</strong> List all your completed activities</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>Hours Worked:</strong> Enter total hours (e.g., 8 or 8.5)</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>Blockers/Issues:</strong> Describe any obstacles (optional)</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> <strong>Next Day Plan:</strong> Outline tomorrow's work</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

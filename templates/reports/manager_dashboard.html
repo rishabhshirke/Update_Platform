@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}Manager Dashboard - EOD Report System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-speedometer2"></i> Manager Dashboard</h2>
+    <p class="subtitle">Review and manage your team's performance</p>
+</div>
+
+{% if is_weekend %}
+<div class="alert alert-info fade-in" role="alert">
+    <i class="bi bi-calendar-week"></i> <strong>Weekend Mode:</strong> Team stats will reset for the new work week starting Monday ({{ week_start|date:"M d, Y" }}).
+</div>
+{% endif %}
+
+<!-- Current Week Section -->
+<div class="card week-card mb-4 fade-in">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="bi bi-calendar-week"></i> This Week's Overview</h5>
+        <span class="badge bg-white text-dark">{{ week_display }}</span>
+    </div>
+    <div class="week-stats">
+        <div class="week-stat-item">
+            <span class="week-stat-number">{{ week_total }}</span>
+            <span class="week-stat-label">Total Submitted</span>
+        </div>
+        <div class="week-stat-item">
+            <span class="week-stat-number">{{ week_pending }}</span>
+            <span class="week-stat-label">Pending Review</span>
+        </div>
+        <div class="week-stat-item">
+            <span class="week-stat-number">{{ week_approved }}</span>
+            <span class="week-stat-label">Approved</span>
+        </div>
+        <div class="week-stat-item">
+            <span class="week-stat-number">{{ week_rejected }}</span>
+            <span class="week-stat-label">Rejected</span>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Statistics -->
+<div class="row mb-4 fade-in">
+    <div class="col-md-3">
+        <div class="card stats-card warning dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stat-label mb-2">Pending Reviews</p>
+                        <h2 class="stat-number text-warning">{{ pending_count }}</h2>
+                    </div>
+                    <i class="bi bi-clock-history icon text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card primary dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stat-label mb-2">Total Reports</p>
+                        <h2 class="stat-number text-primary">{{ total_count }}</h2>
+                    </div>
+                    <i class="bi bi-file-text icon text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stats-card success dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stat-label mb-2">Approved</p>
+                        <h2 class="stat-number text-success">{{ approved_count }}</h2>
+                    </div>
+                    <i class="bi bi-check-circle icon text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% if team_members %}
+    <div class="col-md-3">
+        <div class="card stats-card info dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stat-label mb-2">Team Members</p>
+                        <h2 class="stat-number text-info">{{ team_members.count }}</h2>
+                    </div>
+                    <i class="bi bi-people icon text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="card filter-card mb-4 fade-in">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-funnel-fill"></i> Filter Reports</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                {{ filter_form.date_from }}
+            </div>
+            <div class="col-md-3">
+                {{ filter_form.date_to }}
+            </div>
+            <div class="col-md-2">
+                {{ filter_form.status }}
+            </div>
+            <div class="col-md-3">
+                {{ filter_form.employee }}
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reports Table -->
+<div class="card fade-in">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-people-fill"></i> Team Reports</h5>
+        <span class="badge bg-light text-dark">{{ reports|length }} reports shown</span>
+    </div>
+    <div class="card-body">
+        {% if reports %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-person"></i> Employee</th>
+                        <th><i class="bi bi-calendar3"></i> Date</th>
+                        <th><i class="bi bi-briefcase"></i> Project</th>
+                        <th><i class="bi bi-clock"></i> Hours</th>
+                        <th><i class="bi bi-check-circle"></i> Status</th>
+                        <th><i class="bi bi-gear"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr>
+                        <td>
+                            <div>
+                                <strong>{{ report.employee.get_full_name }}</strong><br>
+                                <small class="text-muted"><i class="bi bi-building"></i> {{ report.employee.department|default:"N/A" }}</small>
+                            </div>
+                        </td>
+                        <td><strong>{{ report.report_date|date:"M d, Y" }}</strong></td>
+                        <td><span class="text-muted">{{ report.project_name }}</span></td>
+                        <td>
+                            <span class="badge bg-light text-dark">
+                                <i class="bi bi-clock-history"></i> {{ report.hours_worked }} hrs
+                            </span>
+                        </td>
+                        <td>
+                            {% if report.status == 'PENDING' %}
+                            <span class="badge status-pending">
+                                <span class="status-icon pending"></span>Pending
+                            </span>
+                            {% elif report.status == 'APPROVED' %}
+                            <span class="badge status-approved">
+                                <span class="status-icon approved"></span>Approved
+                            </span>
+                            {% else %}
+                            <span class="badge status-rejected">
+                                <span class="status-icon rejected"></span>Rejected
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-btn-group">
+                                {% if report.status == 'PENDING' %}
+                                <a href="{% url 'reports:report_detail' report.pk %}"
+                                   class="btn btn-sm btn-outline-primary" title="View Details">
+                                    <i class="bi bi-eye-fill"></i> View
+                                </a>
+                                <a href="{% url 'reports:review_report' report.pk %}"
+                                   class="btn btn-sm btn-success" title="Review Now">
+                                    <i class="bi bi-check-circle-fill"></i> Review
+                                </a>
+                                {% else %}
+                                <a href="{% url 'reports:report_detail' report.pk %}"
+                                   class="btn btn-sm btn-outline-primary" title="View Details">
+                                    <i class="bi bi-eye-fill"></i> View Details
+                                </a>
+                                <span class="badge bg-secondary" title="Review is final and cannot be changed">
+                                    <i class="bi bi-lock-fill"></i> Final
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <h5>No Reports Found</h5>
+            <p>No team reports match your filter criteria.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

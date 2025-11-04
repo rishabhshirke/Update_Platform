@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Report Detail - EOD Report System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2><i class="bi bi-file-text-fill"></i> EOD Report Details</h2>
+    <p class="subtitle">{{ report.report_date|date:"l, F d, Y" }}</p>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card fade-in">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Report Information</h5>
+                    {% if report.status == 'PENDING' %}
+                    <span class="badge status-pending">
+                        <span class="status-icon pending"></span>Pending Review
+                    </span>
+                    {% elif report.status == 'APPROVED' %}
+                    <span class="badge status-approved">
+                        <span class="status-icon approved"></span>Approved
+                    </span>
+                    {% else %}
+                    <span class="badge status-rejected">
+                        <span class="status-icon rejected"></span>Rejected
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4 pb-4 border-bottom">
+                    <div class="col-md-6">
+                        <p><i class="bi bi-person-circle text-primary"></i> <strong>Employee:</strong> {{ report.employee.get_full_name }}</p>
+                        <p><i class="bi bi-building text-muted"></i> <strong>Department:</strong> {{ report.employee.department|default:"N/A" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><i class="bi bi-calendar3 text-primary"></i> <strong>Date:</strong> {{ report.report_date|date:"M d, Y" }}</p>
+                        <p><i class="bi bi-clock text-muted"></i> <strong>Hours Worked:</strong> {{ report.hours_worked }} hours</p>
+                    </div>
+                </div>
+
+                <div class="report-section">
+                    <h6><i class="bi bi-briefcase-fill"></i> Project Name</h6>
+                    <p class="lead">{{ report.project_name }}</p>
+                </div>
+
+                <div class="report-section">
+                    <h6><i class="bi bi-check-square-fill"></i> Tasks Completed</h6>
+                    <p class="text-pre-wrap">{{ report.tasks_completed }}</p>
+                </div>
+
+                {% if report.blockers_issues %}
+                <div class="report-section">
+                    <h6><i class="bi bi-exclamation-triangle-fill text-warning"></i> Blockers/Issues</h6>
+                    <div class="alert alert-warning border-0">
+                        <p class="text-pre-wrap mb-0">{{ report.blockers_issues }}</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="report-section">
+                    <h6><i class="bi bi-calendar-check-fill"></i> Next Day Plan</h6>
+                    <p class="text-pre-wrap">{{ report.next_day_plan }}</p>
+                </div>
+
+                <div class="bg-light p-3 rounded">
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-clock-history"></i> <small><strong>Submitted:</strong> {{ report.submitted_at|date:"M d, Y g:i A" }}</small>
+                        {% if report.updated_at != report.submitted_at %}
+                        <br><i class="bi bi-pencil-square"></i> <small><strong>Last Updated:</strong> {{ report.updated_at|date:"M d, Y g:i A" }}</small>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Section -->
+        {% if report.review %}
+        <div class="card mt-3 fade-in">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-left-quote-fill text-info"></i> Manager Feedback
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <p class="mb-1"><i class="bi bi-person-badge"></i> <strong>Reviewed by:</strong> {{ report.review.reviewer.get_full_name }}</p>
+                    <p class="mb-0"><i class="bi bi-calendar-event"></i> <strong>Date:</strong> {{ report.review.reviewed_at|date:"M d, Y g:i A" }}</p>
+                </div>
+                {% if report.review.comments %}
+                <div class="alert alert-light border">
+                    <h6 class="mb-2"><i class="bi bi-chat-left-text"></i> Comments:</h6>
+                    <p class="text-pre-wrap mb-0">{{ report.review.comments }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <div class="card dashboard-card fade-in">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-gear-fill"></i> Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if user.is_employee and report.employee == user %}
+                    <a href="{% url 'reports:employee_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                    {% if report.can_edit %}
+                    <a href="{% url 'reports:submit_report' %}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> Edit Report
+                    </a>
+                    {% endif %}
+                    {% endif %}
+
+                    {% if user.is_manager or user.is_admin_user %}
+                    <a href="{% url 'reports:manager_dashboard' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                    {% if report.status == 'PENDING' %}
+                    <a href="{% url 'reports:review_report' report.pk %}" class="btn btn-success">
+                        <i class="bi bi-check-circle-fill"></i> Review Report
+                    </a>
+                    {% else %}
+                    <div class="alert alert-info border-0 mt-3">
+                        <i class="bi bi-lock-fill"></i> <strong>Review Finalized:</strong> This report has been {{ report.get_status_display|lower }}. Reviews cannot be modified once completed.
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.text-pre-wrap {
+    white-space: pre-wrap;
+}
+</style>
+{% endblock %}

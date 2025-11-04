@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Review Report - EOD Report System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Report Details -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-text"></i> EOD Report Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p><strong>Employee:</strong> {{ report.employee.get_full_name }}</p>
+                        <p><strong>Department:</strong> {{ report.employee.department|default:"N/A" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Date:</strong> {{ report.report_date|date:"M d, Y" }}</p>
+                        <p><strong>Hours Worked:</strong> {{ report.hours_worked }} hours</p>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6><i class="bi bi-briefcase"></i> Project Name</h6>
+                <p>{{ report.project_name }}</p>
+
+                <hr>
+
+                <h6><i class="bi bi-check-square"></i> Tasks Completed</h6>
+                <p class="text-pre-wrap">{{ report.tasks_completed }}</p>
+
+                <hr>
+
+                {% if report.blockers_issues %}
+                <h6><i class="bi bi-exclamation-triangle"></i> Blockers/Issues</h6>
+                <p class="text-pre-wrap">{{ report.blockers_issues }}</p>
+                <hr>
+                {% endif %}
+
+                <h6><i class="bi bi-calendar-check"></i> Next Day Plan</h6>
+                <p class="text-pre-wrap">{{ report.next_day_plan }}</p>
+
+                <hr>
+
+                <p class="text-muted mb-0">
+                    <small>Submitted: {{ report.submitted_at|date:"M d, Y g:i A" }}</small>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Review Form -->
+        <div class="card">
+            <div class="card-header bg-{% if is_new_review %}warning{% else %}info{% endif %} text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-{% if is_new_review %}pencil-square{% else %}eye{% endif %}"></i>
+                    {% if is_new_review %}Submit{% else %}Update{% endif %} Review
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+
+                    <div class="d-grid gap-2 mt-3">
+                        <button type="submit" class="btn btn-{% if is_new_review %}warning{% else %}info{% endif %}">
+                            <i class="bi bi-save"></i> Submit Review
+                        </button>
+                        <a href="{% url 'reports:manager_dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Current Status -->
+        <div class="card mt-3">
+            <div class="card-body text-center">
+                <h6>Current Status</h6>
+                {% if report.status == 'PENDING' %}
+                <span class="badge bg-warning fs-5">Pending Review</span>
+                {% elif report.status == 'APPROVED' %}
+                <span class="badge bg-success fs-5">Approved</span>
+                {% else %}
+                <span class="badge bg-danger fs-5">Rejected</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.text-pre-wrap {
+    white-space: pre-wrap;
+}
+</style>
+{% endblock %}

@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     # Third-party apps
     'crispy_forms',
     'crispy_bootstrap4',
+    'django_summernote',
 
     # Local apps
     'accounts',
@@ -196,3 +197,28 @@ DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='EOD Reports <noreply@
 # EMAIL_HOST_USER=your-email@gmail.com
 # EMAIL_HOST_PASSWORD=your-gmail-app-password
 # DEFAULT_FROM_EMAIL=EOD Reports <your-email@gmail.com>
+
+# Summernote Configuration
+SUMMERNOTE_CONFIG = {
+    'summernote': {
+        'width': '100%',
+        'height': '300',
+        'toolbar': [
+            ['style', ['style']],
+            ['font', ['bold', 'underline', 'clear']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link']],
+            ['view', ['fullscreen', 'codeview', 'help']],
+        ],
+        'codemirror': {
+            'mode': 'htmlmixed',
+            'lineNumbers': 'true',
+            'theme': 'monokai',
+        },
+    },
+    'attachment_require_authentication': True,
+    'attachment_filesize_limit': 1024 * 1024,  # 1MB
+    'lazy': True,
+}

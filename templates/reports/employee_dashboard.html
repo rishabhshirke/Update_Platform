@@ -85,6 +85,72 @@
     </div>
 </div>
 
+<!-- Rejected Reports Needing Attention -->
+{% if rejected_editable_reports %}
+<div class="row mb-4 fade-in">
+    <div class="col">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Reports Needing Your Attention
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    <i class="bi bi-info-circle"></i> The following reports were rejected and can be edited and resubmitted.
+                    <strong>You have 7 days from rejection and a maximum of 3 attempts.</strong>
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th><i class="bi bi-calendar3"></i> Date</th>
+                                <th><i class="bi bi-briefcase"></i> Project</th>
+                                <th><i class="bi bi-arrow-repeat"></i> Attempts</th>
+                                <th><i class="bi bi-clock-history"></i> Days Left</th>
+                                <th><i class="bi bi-pencil-square"></i> Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in rejected_editable_reports %}
+                            <tr>
+                                <td><strong>{{ report.report_date|date:"M d, Y" }}</strong></td>
+                                <td>{{ report.project_name }}</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">
+                                        {{ report.resubmission_count }}/3 attempts
+                                    </span>
+                                </td>
+                                <td>
+                                    {% with last_review=report.reviews.all.first %}
+                                    {% if last_review %}
+                                        <span class="text-muted">
+                                            <i class="bi bi-clock"></i> Within 7 days
+                                        </span>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'reports:edit_report' report.pk %}"
+                                       class="btn btn-sm btn-warning">
+                                        <i class="bi bi-pencil-fill"></i> Edit & Resubmit
+                                    </a>
+                                    <a href="{% url 'reports:report_detail' report.pk %}"
+                                       class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-eye-fill"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Recent Reports -->
 <div class="row fade-in">
     <div class="col">
@@ -138,6 +204,19 @@
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-eye-fill"></i> View
                                     </a>
+                                    {% if report.can_edit %}
+                                        {% if report.status == 'PENDING' %}
+                                        <a href="{% url 'reports:edit_report' report.pk %}"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil-fill"></i> Edit
+                                        </a>
+                                        {% elif report.status == 'REJECTED' %}
+                                        <a href="{% url 'reports:edit_report' report.pk %}"
+                                           class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil-fill"></i> Edit
+                                        </a>
+                                        {% endif %}
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

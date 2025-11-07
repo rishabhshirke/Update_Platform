@@ -90,9 +90,18 @@ class RegisterView(CreateView):
 def profile_view(request):
     """User profile view"""
     if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=request.user)
+        form = UserProfileForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
-            form.save()
+            user = form.save(commit=False)
+
+            # Handle profile photo removal
+            if form.cleaned_data.get('clear_profile_photo'):
+                if user.profile_photo:
+                    # Delete old photo file
+                    user.profile_photo.delete(save=False)
+                    user.profile_photo = None
+
+            user.save()
             messages.success(request, 'Profile updated successfully!')
             return redirect('accounts:profile')
     else:

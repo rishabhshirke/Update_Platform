@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
+from datetime import timedelta
 
 
 class EODReport(models.Model):
@@ -56,6 +57,10 @@ class EODReport(models.Model):
         choices=STATUS_CHOICES,
         default='PENDING'
     )
+    resubmission_count = models.IntegerField(
+        default=0,
+        help_text='Number of times this report has been resubmitted after rejection (max 3)'
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -74,8 +79,27 @@ class EODReport(models.Model):
         return f"{self.employee.get_full_name()} - {self.report_date}"
 
     def can_edit(self):
-        """Check if report can still be edited (same day submission and not approved/rejected)"""
-        return self.report_date == timezone.now().date() and self.status == 'PENDING'
+        """
+        Check if report can still be edited:
+        - PENDING reports: can be edited anytime until reviewed
+        - REJECTED reports: within 7 days of last review and under 3 resubmissions
+        - APPROVED reports: cannot be edited
+        """
+        if self.status == 'PENDING':
+            # Pending reports can be edited anytime until manager reviews them
+            return True
+        elif self.status == 'REJECTED':
+            # Rejected reports can be edited within 7 days and under 3 attempts
+            if self.resubmission_count >= 3:
+                return False
+            # Check if within 7 days of last review
+            try:
+                last_review = self.reviews.latest('reviewed_at')
+                days_since_review = (timezone.now() - last_review.reviewed_at).days
+                return days_since_review <= 7
+            except ReportReview.DoesNotExist:
+                return False
+        return False
 
     def is_pending(self):
         return self.status == 'PENDING'
@@ -86,15 +110,20 @@ class EODReport(models.Model):
     def is_rejected(self):
         return self.status == 'REJECTED'
 
+    def remaining_resubmissions(self):
+        """Returns the number of resubmissions remaining (max 3 total)"""
+        return max(0, 3 - self.resubmission_count)
+
 
 class ReportReview(models.Model):
     """
     Manager's review and comments on EOD reports
+    Supports multiple reviews per report for resubmissions
     """
-    report = models.OneToOneField(
+    report = models.ForeignKey(
         EODReport,
         on_delete=models.CASCADE,
-        related_name='review'
+        related_name='reviews'
     )
     reviewer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -102,17 +131,22 @@ class ReportReview(models.Model):
         related_name='reviews_given',
         limit_choices_to={'role__in': ['MANAGER', 'ADMIN']}
     )
+    review_number = models.IntegerField(
+        default=1,
+        help_text='Review iteration number (1st review, 2nd review, etc.)'
+    )
     comments = models.TextField(
         blank=True,
         null=True,
         help_text='Manager feedback and comments'
     )
-    reviewed_at = models.DateTimeField(auto_now=True)
+    reviewed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-reviewed_at']
         verbose_name = 'Report Review'
         verbose_name_plural = 'Report Reviews'
+        unique_together = ['report', 'review_number']
 
     def __str__(self):
         return f"Review by {self.reviewer.get_full_name()} for {self.report}"

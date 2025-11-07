@@ -38,6 +38,13 @@ def employee_dashboard_view(request):
     # Get current week date range
     week_start, week_end = get_week_date_range()
 
+    # Get rejected reports that can be edited (within 7 days and under 3 attempts)
+    rejected_editable_reports = []
+    all_rejected = EODReport.objects.filter(employee=request.user, status='REJECTED')
+    for report in all_rejected:
+        if report.can_edit():
+            rejected_editable_reports.append(report)
+
     # Get overall statistics
     total_reports = EODReport.objects.filter(employee=request.user).count()
     pending_reports = EODReport.objects.filter(employee=request.user, status='PENDING').count()
@@ -64,6 +71,8 @@ def employee_dashboard_view(request):
         'week_display': get_week_display(),
         'week_start': week_start,
         'week_end': week_end,
+        # Rejected reports that can be resubmitted
+        'rejected_editable_reports': rejected_editable_reports,
         # Overall stats
         'total_reports': total_reports,
         'pending_reports': pending_reports,
@@ -78,50 +87,103 @@ def employee_dashboard_view(request):
 
 
 @login_required
-def submit_report_view(request):
+def submit_report_view(request, pk=None):
     """Submit or edit EOD report"""
     today = timezone.now().date()
+    is_resubmission = False
+    report = None
+    is_edit = False
 
-    # Check if report for today already exists (only check weekday reports)
-    try:
-        # Try to find today's report only if today is a weekday
-        if today.weekday() < 5:  # Monday-Friday
-            report = EODReport.objects.get(employee=request.user, report_date=today)
+    # If pk is provided, we're editing a specific report (potentially a rejected one)
+    if pk:
+        try:
+            report = EODReport.objects.get(pk=pk, employee=request.user)
             is_edit = True
 
-            # Check if report can be edited (not approved/rejected)
-            if not report.can_edit():
+            # Check if this is a resubmission of a rejected report
+            if report.status == 'REJECTED':
+                is_resubmission = True
+                # Verify it can be edited (within 7 days and under 3 attempts)
+                if not report.can_edit():
+                    if report.resubmission_count >= 3:
+                        messages.error(
+                            request,
+                            'Cannot edit this report. You have reached the maximum number of resubmissions (3 attempts).'
+                        )
+                    else:
+                        messages.error(
+                            request,
+                            'Cannot edit this report. The 7-day edit window has expired.'
+                        )
+                    return redirect('reports:employee_dashboard')
+            elif not report.can_edit():
                 messages.error(
                     request,
                     f'Cannot edit this report. It has been {report.get_status_display().lower()} by your manager.'
                 )
                 return redirect('reports:employee_dashboard')
-        else:
-            # Weekend: Allow creating new reports for past weekdays
+        except EODReport.DoesNotExist:
+            messages.error(request, 'Report not found.')
+            return redirect('reports:employee_dashboard')
+    else:
+        # Check if report for today already exists (only check weekday reports)
+        try:
+            # Try to find today's report only if today is a weekday
+            if today.weekday() < 5:  # Monday-Friday
+                report = EODReport.objects.get(employee=request.user, report_date=today)
+                is_edit = True
+
+                # Check if report can be edited (not approved/rejected)
+                if not report.can_edit():
+                    messages.error(
+                        request,
+                        f'Cannot edit this report. It has been {report.get_status_display().lower()} by your manager.'
+                    )
+                    return redirect('reports:employee_dashboard')
+            else:
+                # Weekend: Allow creating new reports for past weekdays
+                report = None
+                is_edit = False
+        except EODReport.DoesNotExist:
             report = None
             is_edit = False
-    except EODReport.DoesNotExist:
-        report = None
-        is_edit = False
 
     if request.method == 'POST':
         form = EODReportForm(request.POST, instance=report, user=request.user)
         if form.is_valid():
             eod_report = form.save(commit=False)
             eod_report.employee = request.user
-            eod_report.save()
-            if is_edit:
-                messages.success(request, 'EOD report updated successfully!')
+
+            # Handle resubmission logic
+            if is_resubmission:
+                eod_report.status = 'PENDING'
+                eod_report.resubmission_count += 1
+                eod_report.save()
+                messages.success(
+                    request,
+                    f'Report resubmitted successfully! (Attempt {eod_report.resubmission_count}/3)'
+                )
             else:
-                messages.success(request, 'EOD report submitted successfully!')
+                eod_report.save()
+                if is_edit:
+                    messages.success(request, 'EOD report updated successfully!')
+                else:
+                    messages.success(request, 'EOD report submitted successfully!')
             return redirect('reports:employee_dashboard')
     else:
         form = EODReportForm(instance=report, user=request.user)
+
+    # Get last review if exists (for displaying rejection comments)
+    last_review = None
+    if report and report.reviews.exists():
+        last_review = report.reviews.latest('reviewed_at')
 
     context = {
         'form': form,
         'is_edit': is_edit,
         'report': report,
+        'is_resubmission': is_resubmission,
+        'last_review': last_review,
     }
     return render(request, 'reports/submit_report.html', context)
 
@@ -142,7 +204,15 @@ def report_detail_view(request, pk):
             messages.error(request, 'You do not have permission to view this report.')
             return redirect('reports:manager_dashboard')
 
-    context = {'report': report}
+    # Get all reviews for this report (ordered from oldest to newest)
+    reviews = report.reviews.all().order_by('review_number')
+
+    context = {
+        'report': report,
+        'reviews': reviews,
+        'can_edit': report.can_edit() and report.employee == request.user,
+        'remaining_attempts': report.remaining_resubmissions() if report.is_rejected() else 0,
+    }
     return render(request, 'reports/report_detail.html', context)
 
 
@@ -243,23 +313,24 @@ def review_report_view(request, pk):
         messages.error(request, 'You can only review reports from your team members.')
         return redirect('reports:manager_dashboard')
 
-    # Check if report is already approved/rejected (cannot be edited)
+    # Check if report is pending review
     if report.status != 'PENDING':
         messages.info(
             request,
             f'This report has already been {report.get_status_display().lower()}. '
-            'Reviews cannot be modified once finalized.'
+            'It cannot be reviewed at this time.'
         )
         # Redirect to report detail instead of review page
         return redirect('reports:report_detail', pk=report.pk)
 
-    # Get or create review
-    try:
-        review = ReportReview.objects.get(report=report)
-        is_new_review = False
-    except ReportReview.DoesNotExist:
-        review = None
-        is_new_review = True
+    # Get previous reviews to determine review number and check if this is a resubmission
+    previous_reviews = report.reviews.all().order_by('review_number')
+    is_resubmission = previous_reviews.exists()
+    next_review_number = previous_reviews.count() + 1 if is_resubmission else 1
+
+    # Always create a new review (never update existing ones to preserve history)
+    review = None
+    is_new_review = True
 
     if request.method == 'POST':
         # Double-check status hasn't changed since page load
@@ -272,6 +343,7 @@ def review_report_view(request, pk):
             report_review = form.save(commit=False)
             report_review.report = report
             report_review.reviewer = request.user
+            report_review.review_number = next_review_number
             report_review.save()
 
             # Update report status
@@ -280,7 +352,12 @@ def review_report_view(request, pk):
             report.save()
 
             action = 'approved' if decision == 'APPROVED' else 'rejected'
-            messages.success(request, f'Report {action} successfully! This decision is final and cannot be changed.')
+            review_iteration = f' (Review #{next_review_number})' if is_resubmission else ''
+            messages.success(
+                request,
+                f'Report {action} successfully{review_iteration}! '
+                'Employee can resubmit if rejected (within 7 days, max 3 attempts).'
+            )
             return redirect('reports:manager_dashboard')
     else:
         form = ReportReviewForm(instance=review, report=report)
@@ -289,6 +366,9 @@ def review_report_view(request, pk):
         'form': form,
         'report': report,
         'is_new_review': is_new_review,
+        'is_resubmission': is_resubmission,
+        'previous_reviews': previous_reviews,
+        'next_review_number': next_review_number,
     }
     return render(request, 'reports/review_report.html', context)
 

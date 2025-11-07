@@ -10,6 +10,7 @@ urlpatterns = [
     # Employee views
     path('employee/', views.employee_dashboard_view, name='employee_dashboard'),
     path('submit/', views.submit_report_view, name='submit_report'),
+    path('report/<int:pk>/edit/', views.submit_report_view, name='edit_report'),
     path('my-reports/', views.my_reports_view, name='my_reports'),
 
     # Report detail

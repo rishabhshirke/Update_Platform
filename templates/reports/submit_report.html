@@ -14,11 +14,35 @@
 
 <div class="row">
     <div class="col-md-8 offset-md-2">
+        <!-- Resubmission Notice -->
+        {% if is_resubmission and last_review %}
+        <div class="alert alert-warning fade-in" role="alert">
+            <h5 class="alert-heading">
+                <i class="bi bi-exclamation-triangle-fill"></i> Resubmitting Rejected Report
+            </h5>
+            <p class="mb-2">
+                This report was previously rejected. Please review the manager's feedback below and make necessary improvements before resubmitting.
+            </p>
+            <hr>
+            <div class="mb-2">
+                <strong><i class="bi bi-person-badge"></i> Reviewed by:</strong> {{ last_review.reviewer.get_full_name }}<br>
+                <strong><i class="bi bi-calendar-event"></i> Date:</strong> {{ last_review.reviewed_at|date:"M d, Y g:i A" }}<br>
+                <strong><i class="bi bi-arrow-repeat"></i> Attempt:</strong> {{ report.resubmission_count }}/3
+            </div>
+            {% if last_review.comments %}
+            <div class="bg-light p-3 rounded mt-2">
+                <h6><i class="bi bi-chat-left-text"></i> Previous Feedback:</h6>
+                <p class="mb-0 text-pre-wrap">{{ last_review.comments }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
         <div class="card fade-in">
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="bi bi-file-earmark-text-fill"></i>
-                    Report Details
+                    {% if is_resubmission %}Revise Report{% else %}Report Details{% endif %}
                 </h5>
             </div>
             <div class="card-body">
@@ -30,8 +54,9 @@
                         <a href="{% url 'reports:employee_dashboard' %}" class="btn btn-secondary">
                             <i class="bi bi-x-circle"></i> Cancel
                         </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save"></i> {% if is_edit %}Update{% else %}Submit{% endif %} Report
+                        <button type="submit" class="btn {% if is_resubmission %}btn-warning{% else %}btn-primary{% endif %}">
+                            <i class="bi bi-{% if is_resubmission %}arrow-repeat{% else %}save{% endif %}"></i>
+                            {% if is_resubmission %}Resubmit Report{% elif is_edit %}Update Report{% else %}Submit Report{% endif %}
                         </button>
                     </div>
                 </form>
@@ -59,4 +84,10 @@
         </div>
     </div>
 </div>
+
+<style>
+.text-pre-wrap {
+    white-space: pre-wrap;
+}
+</style>
 {% endblock %}

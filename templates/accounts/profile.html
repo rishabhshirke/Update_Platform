@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load avatar_tags %}
 
 {% block title %}Profile - EOD Report System{% endblock %}
 
@@ -14,8 +15,8 @@
         <div class="card profile-info fade-in">
             <div class="card-body text-white">
                 <div class="text-center mb-4">
-                    <i class="bi bi-person-circle" style="font-size: 5rem;"></i>
-                    <h4 class="mt-2">{{ user.get_full_name }}</h4>
+                    {{ user|avatar_html:"xl" }}
+                    <h4 class="mt-3">{{ user.get_full_name }}</h4>
                     <p class="mb-0 opacity-75">@{{ user.username }}</p>
                 </div>
                 <hr class="border-white opacity-25">
@@ -49,9 +50,54 @@
                 <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Update Profile Information</h5>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    {{ form|crispy }}
+
+                    <!-- Profile Photo Section -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-camera-fill"></i> Profile Photo
+                        </label>
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-3">
+                                <div id="photo-preview">
+                                    {{ user|avatar_html:"lg" }}
+                                </div>
+                                <small class="text-muted d-block mt-2">Current Photo</small>
+                            </div>
+                            <div class="col-md-8">
+                                {{ form.profile_photo }}
+                                <small class="form-text text-muted d-block mt-1">
+                                    <i class="bi bi-info-circle"></i> Max 2MB, JPG/PNG only. Will be resized to 300x300px.
+                                </small>
+
+                                {% if user.profile_photo %}
+                                <div class="form-check mt-2">
+                                    {{ form.clear_profile_photo }}
+                                    <label class="form-check-label" for="{{ form.clear_profile_photo.id_for_label }}">
+                                        {{ form.clear_profile_photo.label }}
+                                    </label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Other Profile Fields -->
+                    {% for field in form %}
+                        {% if field.name not in 'profile_photo,clear_profile_photo' %}
+                            <div class="mb-3">
+                                {{ field.label_tag }}
+                                {{ field }}
+                                {% if field.errors %}
+                                    <div class="text-danger small">{{ field.errors }}</div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-save"></i> Save Changes

@@ -31,18 +31,18 @@
                 <hr>
 
                 <h6><i class="bi bi-check-square"></i> Tasks Completed</h6>
-                <p class="text-pre-wrap">{{ report.tasks_completed }}</p>
+                <div class="formatted-content">{{ report.tasks_completed|safe }}</div>
 
                 <hr>
 
                 {% if report.blockers_issues %}
                 <h6><i class="bi bi-exclamation-triangle"></i> Blockers/Issues</h6>
-                <p class="text-pre-wrap">{{ report.blockers_issues }}</p>
+                <div class="formatted-content">{{ report.blockers_issues|safe }}</div>
                 <hr>
                 {% endif %}
 
                 <h6><i class="bi bi-calendar-check"></i> Next Day Plan</h6>
-                <p class="text-pre-wrap">{{ report.next_day_plan }}</p>
+                <div class="formatted-content">{{ report.next_day_plan|safe }}</div>
 
                 <hr>
 

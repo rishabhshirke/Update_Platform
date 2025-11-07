@@ -1,5 +1,6 @@
 from django import forms
 from django.utils import timezone
+from django_summernote.widgets import SummernoteWidget
 from .models import EODReport, ReportReview
 
 
@@ -13,15 +14,12 @@ class EODReportForm(forms.ModelForm):
             'report_date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'form-control',
-                'max': timezone.now().date().isoformat()
             }),
             'project_name': forms.TextInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'e.g., Mobile App Development, Website Redesign...'
             }),
-            'tasks_completed': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 5,
+            'tasks_completed': SummernoteWidget(attrs={
                 'placeholder': 'List the tasks and activities you completed today...'
             }),
             'hours_worked': forms.NumberInput(attrs={
@@ -31,14 +29,10 @@ class EODReportForm(forms.ModelForm):
                 'max': '24',
                 'placeholder': 'e.g., 8.5'
             }),
-            'blockers_issues': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
+            'blockers_issues': SummernoteWidget(attrs={
                 'placeholder': 'Describe any blockers or issues you faced (optional)...'
             }),
-            'next_day_plan': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
+            'next_day_plan': SummernoteWidget(attrs={
                 'placeholder': 'What do you plan to work on tomorrow?...'
             }),
         }
@@ -46,6 +40,11 @@ class EODReportForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        # Set max date to today dynamically (must be done at runtime, not class definition time)
+        today = timezone.now().date().isoformat()
+        self.fields['report_date'].widget.attrs['max'] = today
+
         # Set default date to today
         if not self.instance.pk:
             self.fields['report_date'].initial = timezone.now().date()

@@ -11,6 +11,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
     path('reports/', include('reports.urls')),
+    path('summernote/', include('django_summernote.urls')),
     path('', RedirectView.as_view(url='/reports/', permanent=False)),
 ]
 

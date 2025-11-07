@@ -39,6 +39,12 @@ class User(AbstractUser):
         blank=True,
         null=True
     )
+    profile_photo = models.ImageField(
+        upload_to='profile_photos/%Y/%m/',
+        blank=True,
+        null=True,
+        help_text='Profile photo (optional, max 2MB, JPG/PNG only)'
+    )
     # Note: date_joined is inherited from AbstractUser
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -64,6 +70,34 @@ class User(AbstractUser):
         if self.is_manager():
             return self.team_members.all()
         return User.objects.none()
+
+    def get_initials(self):
+        """Returns user initials (e.g., 'JD' for John Doe)"""
+        if self.first_name and self.last_name:
+            return f"{self.first_name[0]}{self.last_name[0]}".upper()
+        elif self.first_name:
+            return self.first_name[0].upper()
+        elif self.username:
+            return self.username[0].upper()
+        return '?'
+
+    def get_avatar_color(self):
+        """Returns consistent color for user based on username"""
+        colors = [
+            '#3498db',  # Blue
+            '#2ecc71',  # Green
+            '#e74c3c',  # Red
+            '#f39c12',  # Orange
+            '#9b59b6',  # Purple
+            '#1abc9c',  # Turquoise
+            '#34495e',  # Dark gray
+            '#e67e22',  # Carrot
+            '#95a5a6',  # Silver
+            '#d35400',  # Pumpkin
+        ]
+        # Use hash of username to pick a consistent color
+        index = sum(ord(c) for c in self.username) % len(colors)
+        return colors[index]
 
     def clean(self):
         """Validate user data"""
